@@ -18,12 +18,12 @@ role = st.sidebar.radio("Login as", ["Worker", "Doctor", "Government"])
 # ---------------- Worker Registration ----------------
 if role == "Worker":
     st.header("👷 Worker Registration")
-    st.info("Problem: Migrant workers often lose past health records, face repeated tests, and cannot communicate effectively with doctors in new locations.")
+    st.info("Problem in Kerala: Migrant workers often move frequently and lose their past health records. They face repeated tests, language barriers, and difficulty communicating with doctors in new locations.")
     
     name = st.text_input("Name")
     age = st.number_input("Age", min_value=1, max_value=100)
     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
-    language = st.selectbox("Preferred Language", ["Malayalam","Hindi","Bengali","Odia","Tamil","Assamese"])
+    language = st.selectbox("Preferred Language", ["English", "Malayalam","Hindi","Bengali","Odia","Tamil","Assamese","Telugu"])
     
     # Upload medical report
     report = st.file_uploader("Upload your latest medical report (PDF/Images)", type=["pdf","png","jpg","jpeg"])
