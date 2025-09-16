@@ -3,13 +3,20 @@ import pandas as pd
 from datetime import datetime
 import hashlib
 import random
-import io
+import os
 
 st.set_page_config(page_title="Migrant Health Connect", page_icon="💊")
 
-# In-memory "database"
+# Create uploads folder if not exists
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+
+# Load existing worker data from CSV
 if "workers" not in st.session_state:
-    st.session_state.workers = []
+    if os.path.exists("workers_data.csv"):
+        st.session_state.workers = pd.read_csv("workers_data.csv").to_dict("records")
+    else:
+        st.session_state.workers = []
 
 st.title("💊 Migrant Health Connect – Prototype")
 
@@ -29,26 +36,38 @@ if role == "Worker":
     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
     language = st.selectbox(
         "Preferred Language",
-        ["English", "Malayalam", "Hindi", "Bengali", "Odia", "Tamil", "Assamese", "Telugu"],
+        ["English", "Malayalam","Hindi","Bengali","Odia","Tamil","Assamese","Telugu"],
     )
 
     # Upload medical report
-    report = st.file_uploader(
-        "Upload your latest medical report (PDF/Images)", type=["pdf", "png", "jpg", "jpeg"]
-    )
+    report = st.file_uploader("Upload your latest medical report (PDF/Images)", type=["pdf", "png", "jpg", "jpeg"])
 
     if st.button("Register"):
-        # Save record with file content if uploaded
+        report_name = "No report uploaded"
+        report_path = None
+
+        if report:
+            report_name = report.name
+            report_path = os.path.join("uploads", report.name)
+            # Save the uploaded file to disk
+            with open(report_path, "wb") as f:
+                f.write(report.read())
+
+        # Save record
         record = {
             "Name": name,
             "Age": age,
             "Gender": gender,
             "Language": language,
-            "ReportName": report.name if report else "No report uploaded",
-            "ReportBytes": report.read() if report else None,
+            "ReportName": report_name,
+            "ReportPath": report_path,
             "Date": datetime.now(),
         }
+
         st.session_state.workers.append(record)
+
+        # Save all workers to CSV
+        pd.DataFrame(st.session_state.workers).to_csv("workers_data.csv", index=False)
 
         # Blockchain hash demo
         hash_val = hashlib.sha256(f"{name}{age}{datetime.now()}".encode()).hexdigest()
@@ -67,18 +86,18 @@ elif role == "Doctor":
 
     if st.session_state.workers:
         df = pd.DataFrame(
-            [{k: v for k, v in w.items() if k not in ("ReportBytes",)} for w in st.session_state.workers]
+            [{k: v for k, v in w.items() if k not in ("ReportPath",)} for w in st.session_state.workers]
         )
         st.dataframe(df)
 
-        # Show uploaded reports with download buttons
+        # Show uploaded reports with download/open buttons
         st.subheader("Uploaded Reports")
         for w in st.session_state.workers:
-            if w.get("ReportBytes"):
+            if w.get("ReportPath") and w["ReportPath"] != "None":
                 st.write(f"**{w['Name']}** – {w['ReportName']}")
                 st.download_button(
                     label="📥 Download / Open Report",
-                    data=w["ReportBytes"],
+                    data=open(w["ReportPath"], "rb").read(),
                     file_name=w["ReportName"],
                     mime="application/octet-stream",
                 )
